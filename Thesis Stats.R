@@ -18,7 +18,9 @@ wubuy_data_raw <- read_csv('Noun Occurance Database.csv')
 
 
 # filter for acts and states
-wubuy_data <- filter(wubuy_data_raw, `Predicate Class` %in% c('act', 'state', 'adj'))
+wubuy_data <- filter(wubuy_data_raw, `Predicate Class` %in% c('act', 'state', 'adj', 'stance'))
+wubuy_data <- mutate(wubuy_data, `Predicate Class` = ifelse(`Predicate Class` == 'stance', 'act', `Predicate Class`))
+
 
 # convert database into counts
 
@@ -369,8 +371,7 @@ old_incorp_percent_non_body <- (count(filter(filter(wubuy_non_body, `First occur
 ############################################
 frequency_table_trimmed %>% ggplot(aes(x = `Body Part`, y = `Incorporation Rate`, fill = `Body Part`)) + 
   geom_boxplot() + theme_minimal() +
-  ylab('Percent Incorporated') + 
-  ggtitle('Body Part Incorporation vs. Non Body Part Incorporation')
+  ylab('Percent Incorporated') 
 
 quantile(filter(frequency_table_trimmed, `Body Part` == 'body part')$`Incorporation Rate`)
 range(filter(frequency_table_trimmed, `Body Part` == 'body part')$`Incorporation Rate`)
@@ -646,13 +647,16 @@ frequency_table_trimmed %>% filter(`Noun Group` != 'voice') %>%
 #       Mixed Linear Effect Model
 ############################################################################################
 
-multible_mdl <- lm(`Incorporation Rate` ~ `Focus Rate` * `Possessed Percent`, data = frequency_table_trimmed)
+#center predictors
+frequency_table_trimmed <- mutate(frequency_table_trimmed, `Focus Rate c` = `Focus Rate` - mean(`Focus Rate`), `Possessed Percent c` = `Possessed Percent` - mean(`Possessed Percent`))
+
+multible_mdl <- lm(`Incorporation Rate` ~ `Focus Rate c` * `Possessed Percent c`, data = frequency_table_trimmed)
 summary(multible_mdl)
 
-multible_bod_mdl <- lm(`Incorporation Rate` ~ `Focus Rate` * `Possessed Percent`, data = filter(frequency_table_trimmed, `Body Part` == 'body part'))
+multible_bod_mdl <- lm(`Incorporation Rate` ~ `Focus Rate c` * `Possessed Percent c`, data = filter(frequency_table_trimmed, `Body Part` == 'body part'))
 summary(multible_bod_mdl)
 
-multible_nonbod_mdl <- lm(`Incorporation Rate` ~ `Focus Rate` * `Possessed Percent`, data = filter(frequency_table_trimmed, `Body Part` != 'body part'))
+multible_nonbod_mdl <- lm(`Incorporation Rate` ~ `Focus Rate c` * `Possessed Percent c`, data = filter(frequency_table_trimmed, `Body Part` != 'body part'))
 summary(multible_nonbod_mdl)
 
 multible_mdl <- lm(`Incorporation Rate` ~ `Focus Rate` + `Possessed Percent`, data = frequency_table_trimmed)
@@ -675,7 +679,7 @@ wubuy_factor <- mutate(wubuy_data,
                        `Focus/Topic` = factor(`Focus/Topic`), 
                        `argument function` = factor(ifelse(`argument function` %in% c('A', 'O', 'OBL', 'S'), `argument function`, 'OBL')),
                        Possessed = factor(ifelse(`Possession status` %in% c('X-REL Y', 'part/whole', 'possessor raising'), 'yes', 'no')),
-                       `Possessor Raised` = factor(ifelse(`Possession status` %in% c('part/whole', 'possessor raising'), 'yes', 'no')),
+                       `Possessor Raised` = factor(ifelse(`Possession status` %in% c('part/whole', 'possessor raising') & `argument function` == 'OBL', 'yes', 'no')),
                        Possession = factor(ifelse(`Possession status` %in% c('X-REL Y', 'part/whole', 'possessor raising'), `Possession status`, 'no')),
                        `First occurance` = factor(`First occurance`),
                        `<wara> in verb` = factor(`<wara> in verb`),
@@ -685,13 +689,13 @@ wubuy_factor <- mutate(wubuy_data,
                        Presentational = factor(Presentational))
 
 #all variables considered
-output.tree <- ctree(Incorporated ~ `Body Part` + `Focus/Topic` + `argument function` + Possession + `argument function` + `First occurance` + Presentational + `Predicate Class`, data = wubuy_factor)
+#output.tree <- ctree(Incorporated ~ `Body Part` + `Focus/Topic` + `argument function` + Possession + `argument function` + `First occurance` + Presentational + `Predicate Class`, data = wubuy_factor)
+#plot(output.tree)
+
+output.tree <- ctree(Incorporated ~ `Body Part` + `Focus/Topic` + `argument function` + Possessed + `Possessor Raised` + `argument function` + `First occurance` + `Predicate Class`, data = wubuy_factor)
 plot(output.tree)
 
-output.tree <- ctree(Incorporated ~ `Body Part` + `Focus/Topic` + `argument function` + `Possessor Raised` + `argument function` + `First occurance` + Presentational, data = wubuy_factor)
-plot(output.tree)
-
-output.tree <- ctree(Incorporated ~ `Body Part` + `Focus/Topic` + `argument function` + Possessed + `argument function` + `First occurance` + Presentational, data = wubuy_factor)
+output.tree <- ctree(Incorporated ~ `Body Part` + `Focus/Topic` + `argument function` + Possession + `argument function` + `First occurance` + Presentational  + `Predicate Class`, data = wubuy_factor)
 plot(output.tree)
 
 output.tree <- ctree(Incorporated ~ `Body Part` + `First occurance` + `argument function` + Possessed + Presentational, data = wubuy_factor)
