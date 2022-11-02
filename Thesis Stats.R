@@ -6,6 +6,7 @@ library(stringr)
 library(dplyr)
 library(partykit)
 library(entropy)
+library(Hmisc)
 
 ############################################
 #     READING DATA
@@ -102,8 +103,7 @@ narrator_data %>% mutate(Narrator = str_wrap(Narrator, width = 10)) %>% ggplot(a
   theme_minimal() + 
   geom_hline(yintercept = mean(narrator_data$`Percent Incorporated`)) + 
   geom_text(aes(0.65, mean(`Percent Incorporated`), 
-                label = round(mean(`Percent Incorporated`), 2), vjust = -1)) + 
-  ggtitle("Percent Incorporated by Narrator")
+                label = round(mean(`Percent Incorporated`), 2), vjust = -1))
 
 # box plot of narrators incorporation rate
 narrator_data %>% ggplot(aes(x = `Percent Incorporated`)) + 
@@ -130,7 +130,6 @@ genre_data %>% ggplot(aes(x = Genre, y = `Incorporation Rate`)) +
   theme_minimal() + 
   geom_hline(yintercept = mean(genre_data$`Incorporation Rate`)) + 
   geom_text(aes(0.65, mean(`Incorporation Rate`), label = round(mean(`Incorporation Rate`), 2), vjust = -1)) +
-  ggtitle("Percent Incorporated by Topic") +
   xlab('Topic') +
   ylab('Percent Incorporated')
 
@@ -162,7 +161,6 @@ gen_nar_total %>% filter(!is.na(`Percent Incorporated`)) %>%
   stat_summary(geom = 'point', fun = 'mean', col = 'black', 
                size = 2, shape = 24, fill = 'red') +
   geom_point() + theme_minimal() + 
-  ggtitle('Percent Incorporated by Topic for each Narrator With Mean') + 
   xlab('Topic') + 
   labs(color = 'Narrator')
 
@@ -172,7 +170,6 @@ gen_nar_total %>% filter(!is.na(`Percent Incorporated`)) %>%
   stat_summary(geom = 'point', fun = 'mean', col = 'black', 
                size = 2, shape = 24, fill = 'red') +
   geom_point() + theme_minimal() + 
-  ggtitle('Percent Incorporated by Narrator for each Topic With Mean') + 
   labs(color = 'Topic') +
   xlab('Narrator')
 
@@ -181,7 +178,6 @@ wubuy_data %>% mutate(Narrator = str_wrap(Narrator, width = 10)) %>%
   geom_bar(position = 'fill') + 
   theme_minimal() + 
   scale_fill_brewer(palette = 'PuOr') +
-  ggtitle('Proportion of Target Noun Count by Topic') + 
   labs(fill = 'Topic') +
   ylab('Proportion')
 
@@ -203,8 +199,7 @@ frequency_table_trimmed %>% ggplot(aes(x = `Focus Rate`, y = `Incorporation Rate
 frequency_table_trimmed %>% ggplot(aes(x = `Focus Rate`, y = `Incorporation Rate`)) + 
   geom_point() + 
   geom_smooth(method = 'lm') + 
-  theme_minimal() + 
-  ggtitle('Linear Model of Focus vs Incorporability') + 
+  theme_minimal() +  
   geom_hline(yintercept = 0) + 
   geom_vline(xintercept = 0) + 
   xlab('Percent Focused') + 
@@ -214,7 +209,6 @@ frequency_table_trimmed %>% ggplot(aes(x = `Focus Rate`, y = `Incorporation Rate
   geom_point() + 
   geom_smooth(method = 'lm') + 
   theme_minimal() + 
-  ggtitle('Linear Model of Focus vs Incorporability') + 
   geom_hline(yintercept = 0) + 
   geom_vline(xintercept = 0) + 
   xlab('Percent Focused') + 
@@ -695,37 +689,9 @@ wubuy_factor <- mutate(wubuy_data,
 output.tree <- ctree(Incorporated ~ `Body Part` + `Focus/Topic` + `argument function` + Possessed + `Possessor Raised` + `argument function` + `First occurance` + `Predicate Class`, data = wubuy_factor)
 plot(output.tree)
 
-output.tree <- ctree(Incorporated ~ `Body Part` + `Focus/Topic` + `argument function` + Possession + `argument function` + `First occurance` + Presentational  + `Predicate Class`, data = wubuy_factor)
-plot(output.tree)
-
-output.tree <- ctree(Incorporated ~ `Body Part` + `First occurance` + `argument function` + Possessed + Presentational, data = wubuy_factor)
-plot(output.tree)
-
-output.tree <- ctree(Incorporated ~ `Body Part` + `Focus/Topic` + `argument function`, data = wubuy_factor)
-plot(output.tree)
-
-output.tree <- ctree(Incorporated ~  `Focus/Topic` + Possessed + `Predicate Class`, data = filter(wubuy_factor, `External Mod` != 'double'))
-plot(output.tree)
-
-output.tree <- ctree(Incorporated ~ `Focus/Topic` + `First occurance` + Presentational + `Possessor Raised`, data = wubuy_factor)
-plot(output.tree)
-
-output.tree <- ctree(Incorporated ~ `Focus/Topic` + `argument function` + Possessed + `Body Part`, data = wubuy_factor)
-plot(output.tree)
-
-output.tree <- ctree(Incorporated ~ `argument function` + `First occurance` + Possessed + `Body Part`, data = wubuy_factor)
-plot(output.tree)
-
-output.tree <- ctree(Incorporated ~ `argument function` + `Predicate Class` + Possessed + `Body Part`, data = filter(wubuy_factor, `Possession status` %!in% c('possessor raising', 'part/whole')))
-plot(output.tree)
-
-output.tree <- ctree(Incorporated ~ `argument function` + `Predicate Class` + Possessed + `Body Part`, data = wubuy_factor)
-plot(output.tree)
-
-output.tree <- ctree(`argument function` ~ `Predicate Class` + Possessed + `Body Part` + `Focus/Topic`, data = filter(wubuy_factor, `External Mod` == 'double'))
-plot(output.tree)
-
-
+#compute predicted values
+pred.cit <- unlist(predict(output.tree, type = 'prob'))
+somers2(pred.cit, as.numeric(wubuy_factor$Incorporated) - 1)
 
 
 
